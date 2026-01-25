@@ -62,7 +62,7 @@ kubectl parallel-drain --old-k8s-version v1.32.0 --concurrency 5
 **Target Specific Nodes:**
 Drain nodes in a specific zone running the old version:
 ```bash
-kubectl parallel_drain --old-k8s-version v1.32.0 --selector "topology.kubernetes.io/zone=us-west-2a"
+kubectl parallel_drain --old-k8s-version v1.32.0 --selector "agentpool=xyz"
 ```
 
 **Custom Check Interval:**
@@ -75,7 +75,7 @@ kubectl parallel_drain --old-k8s-version v1.32.0 --interval 30s
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--old-k8s-version` | **(Required)** The Kubernetes version to match and drain (e.g., `v1.25.0`). | |
-| `--concurrency`, `-c` | Number of nodes to drain in parallel. | `2` |
+| `--old-k8s-version` | **(Required)** The Kubernetes version to match and drain (e.g., `v1.32.0`). | |
+| `--concurrency`, `-c` | Number of nodes to drain in parallel. | `10` |
 | `--selector`, `-l` | Label selector to filter nodes (standard kubectl selector). | `""` |
 | `--interval` | Duration to wait between checks/reconciliation loops. | `10s` |
