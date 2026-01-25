@@ -22,7 +22,7 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "kubectl-parallel_drain",
+	Use:   "parallel-drain",
 	Short: "Continuously drains multiple nodes of a specific version in parallel",
 	RunE:  run,
 }
@@ -30,7 +30,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 10, "Number of nodes to drain in parallel")
 	rootCmd.Flags().StringVarP(&nodeSelector, "selector", "l", "", "Label selector to filter nodes")
-	rootCmd.Flags().StringVar(&oldVersion, "old-version", "", "The Kubernetes version to match and drain (e.g. v1.25.0)")
+	rootCmd.Flags().StringVar(&oldVersion, "old-k8s-version", "", "The Kubernetes version to match and drain (e.g. v1.32.0)")
 	rootCmd.Flags().DurationVar(&checkInterval, "interval", 10*time.Second, "Interval to check for nodes to drain")
 }
 
