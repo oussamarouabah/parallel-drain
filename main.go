@@ -17,7 +17,7 @@ import (
 var (
 	concurrency   int
 	nodeSelector  string
-	oldVersion    string
+	k8sVersion    string
 	checkInterval time.Duration
 )
 
@@ -30,8 +30,8 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 10, "Number of nodes to drain in parallel")
 	rootCmd.Flags().StringVarP(&nodeSelector, "selector", "l", "", "Label selector to filter nodes")
-	rootCmd.Flags().StringVar(&oldVersion, "old-k8s-version", "", "The Kubernetes version to match and drain (e.g. v1.32.0)")
-	rootCmd.Flags().DurationVar(&checkInterval, "interval", 10*time.Second, "Interval to check for nodes to drain")
+	rootCmd.Flags().StringVarP(&k8sVersion, "k8s-version", "v", "", "The Kubernetes version to match and drain (e.g. v1.32.0)")
+	rootCmd.Flags().DurationVarP(&checkInterval, "interval", "i", 10*time.Second, "Interval to check for nodes to drain")
 }
 
 func main() {
@@ -42,12 +42,11 @@ func main() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	if oldVersion == "" {
-		return fmt.Errorf("--old-k8s-version is required")
+	if k8sVersion == "" {
+		return fmt.Errorf("--k8s-version is required")
 	}
 
-	fmt.Printf("Starting parallel drain loop for version %s with concurrency %d, checking every %s...\n", oldVersion, concurrency, checkInterval)
-
+	fmt.Printf("Starting parallel drain loop for version %s with concurrency %d, checking every %s...\n", k8sVersion, concurrency, checkInterval)
 	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
 		return err
@@ -116,7 +115,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 		var oldNode int
 		for _, node := range nodes.Items {
-			if node.Status.NodeInfo.KubeletVersion != oldVersion {
+			if node.Status.NodeInfo.KubeletVersion != k8sVersion {
 				continue
 			}
 			oldNode++
