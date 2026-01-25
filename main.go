@@ -43,7 +43,7 @@ func main() {
 
 func run(cmd *cobra.Command, args []string) error {
 	if oldVersion == "" {
-		return fmt.Errorf("--old-version is required")
+		return fmt.Errorf("--old-k8s-version is required")
 	}
 
 	fmt.Printf("Starting parallel drain loop for version %s with concurrency %d, checking every %s...\n", oldVersion, concurrency, checkInterval)
