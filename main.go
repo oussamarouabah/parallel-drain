@@ -19,6 +19,7 @@ var (
 	nodeSelector  string
 	k8sVersion    string
 	checkInterval time.Duration
+	version       = "dev"
 )
 
 var rootCmd = &cobra.Command{
@@ -27,11 +28,20 @@ var rootCmd = &cobra.Command{
 	RunE:  run,
 }
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println(version)
+	},
+}
+
 func init() {
 	rootCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 10, "Number of nodes to drain in parallel")
 	rootCmd.Flags().StringVarP(&nodeSelector, "selector", "l", "", "Label selector to filter nodes")
 	rootCmd.Flags().StringVarP(&k8sVersion, "k8s-version", "v", "", "The Kubernetes version to match and drain (e.g. v1.32.0)")
 	rootCmd.Flags().DurationVarP(&checkInterval, "interval", "i", 10*time.Second, "Interval to check for nodes to drain")
+	rootCmd.AddCommand(versionCmd)
 }
 
 func main() {
@@ -52,6 +62,16 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if concurrency > 20 {
+		fmt.Printf("Warning: High concurrency (%d) may lead to API server rate limiting issues.\n", concurrency)
+	}
+	if concurrency < 5 {
+		fmt.Printf("Warning: Low concurrency (%d) may lead to slower draining, using %d.\n", concurrency, 5)
+		concurrency = 5
+	}
+	config.QPS = float32(concurrency)
+	config.Burst = concurrency * 2
+
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
@@ -63,6 +83,7 @@ func run(cmd *cobra.Command, args []string) error {
 		wg              sync.WaitGroup
 
 		drainHelper = &drain.Helper{
+			Ctx:                 cmd.Context(),
 			Client:              clientset,
 			Force:               false,
 			IgnoreAllDaemonSets: true,
@@ -72,6 +93,11 @@ func run(cmd *cobra.Command, args []string) error {
 			ErrOut:              os.Stderr,
 		}
 	)
+
+	evictionGroupVersion, err := drain.CheckEvictionSupport(clientset)
+	if err != nil {
+		fmt.Printf("Eviction not supported (using delete): %v\n", err)
+	}
 
 	for i := 0; i < concurrency; i++ {
 		wg.Go(func() {
@@ -90,10 +116,22 @@ func run(cmd *cobra.Command, args []string) error {
 					processingNodes.Delete(nodeName)
 					continue
 				}
-				if err := drain.RunNodeDrain(drainHelper, nodeName); err != nil {
-					fmt.Fprintf(os.Stderr, "Error draining %s: %v\n", nodeName, err)
-				} else {
-					fmt.Printf("Successfully drained node: %s\n", nodeName)
+				// Retrieve pods to evict
+				podList, errs := drainHelper.GetPodsForDeletion(nodeName)
+				if len(errs) > 0 {
+					for _, e := range errs {
+						fmt.Fprintf(os.Stderr, "Error getting pods for deletion on %s: %v\n", nodeName, e)
+					}
+				}
+
+				if podList != nil {
+					for _, pod := range podList.Pods() {
+						err = drainHelper.EvictPod(pod, evictionGroupVersion)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Error (skipped) evicting pod %s/%s on node %s: %v\n", pod.Namespace, pod.Name, nodeName, err)
+						}
+					}
+					fmt.Printf("Finished draining node: %s\n", nodeName)
 				}
 
 				processingNodes.Delete(nodeName)

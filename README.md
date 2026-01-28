@@ -10,10 +10,25 @@
 
 ## Installation
 
-### Prerequisites
+### Option 1: Download Binary (Recommended)
+
+Download the latest binary for your operating system from the [Releases](https://github.com/oussamarouabah/parallel-drain/releases) page.
+
+**Linux / macOS:**
+```bash
+# Replace <OS> with linux or darwin, and <ARCH> with amd64 or arm64
+# Example for Linux amd64:
+curl -LO https://github.com/oussamarouabah/parallel-drain/releases/latest/download/kubectl-parallel_drain-linux-amd64
+chmod +x kubectl-parallel_drain-linux-amd64
+sudo mv kubectl-parallel_drain-linux-amd64 /usr/local/bin/kubectl-parallel_drain
+```
+
+### Option 2: Build from Source
+
+#### Prerequisites
 *   Go 1.25+ installed
 
-### Steps
+#### Steps
 
 1.  Clone the repository:
     ```bash
