@@ -143,6 +143,7 @@ func run(cmd *cobra.Command, args []string) error {
 	defer ticker.Stop()
 
 	for ; true; <-ticker.C {
+		fmt.Printf("\n\n\n\n------ Checking for nodes to drain matching version %s ------\n\n", k8sVersion)
 		nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{
 			LabelSelector: nodeSelector,
 		})
